@@ -3,6 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Test Database
+pokemon_tracker.db
+
 # C extensions
 *.so
 
