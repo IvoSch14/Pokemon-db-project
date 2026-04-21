@@ -32,7 +32,7 @@ def get_cards_by_set(set_id: str):
 
 if __name__ == "__main__":
     card = get_card_by_id("swsh3-136")
-    print(card.name if card else "No card found")
-
+    print(f"Found: {card.name} ({card.localId}/{card.set.cardCount.total})")
+    print(f"id: {card.id} vs localID: {card.localId} vs set: {card.set.name} vs set id: {card.set.id}")
     results = search_cards_by_name("charizard")
     print(f"Found {len(results)} cards")

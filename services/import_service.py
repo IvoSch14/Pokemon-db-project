@@ -1,0 +1,1 @@
+# used to import cards and sets from tcg dex api -- for seeding database
