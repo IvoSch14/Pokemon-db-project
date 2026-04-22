@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Home - PokéTracker{% endblock %}
+
+{% block content %}
+<div class="row text-center mt-5">
+    <div class="col-md-8 offset-md-2">
+        <h1 class="display-4 fw-bold">Welcome to PokéTracker</h1>
+        <p class="lead mt-3">Search for your favorite Pokémon cards, track market prices, and build your ultimate watchlist.</p>
+        
+        <form action="/search_cards" method="GET" class="mt-4">
+            <div class="input-group input-group-lg">
+                <input type="text" name="q" class="form-control" placeholder="Search for a Pokémon... (e.g., Charizard)">
+                <button class="btn btn-primary" type="submit">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
