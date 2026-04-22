@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}{{ card['card_name'] }} - Details{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            {% if card['image_url'] %}
+                <img src="{{ card['image_url'] }}" class="card-img-top" alt="{{ card['card_name'] }}">
+            {% else %}
+                <div class="bg-secondary text-white d-flex justify-content-center align-items-center" style="height: 400px;">
+                    No Image Available
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <h2 class="fw-bold">{{ card['card_name'] }}</h2>
+        <p class="text-muted">Set: {{ card['set_name'] }} | Number: {{ card['card_number'] }} | Rarity: {{ card['rarity'] }}</p>
+        
+        <hr>
+
+        <div class="card mb-4 bg-light">
+            <div class="card-body">
+                <h5 class="card-title">Add to Watchlist</h5>
+                <form action="/add_to_watchlist" method="POST" class="row g-3 align-items-center">
+                    <input type="hidden" name="card_id" value="{{ card['card_id'] }}">
+                    <input type="hidden" name="user_id" value="1"> 
+                    
+                    <div class="col-auto">
+                        <label for="target_price" class="col-form-label">Target Price ($):</label>
+                    </div>
+                    <div class="col-auto">
+                        <input type="number" step="0.01" class="form-control" name="target_price" required>
+                    </div>
+                    <div class="col-auto">
+                        <select class="form-select" name="alert_direction">
+                            <option value="below">Alert when below</option>
+                            <option value="above">Alert when above</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-success">Set Alert</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <h4>Price History</h4>
+        {% if history %}
+            <table class="table table-striped table-hover mt-3">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date</th>
+                        <th>Price</th>
+                        <th>Type</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in history %}
+                    <tr>
+                        <td>{{ row['recorded_at'] }}</td>
+                        <td>${{ "%.2f"|format(row['price_value']) }}</td>
+                        <td>{{ row['price_type'] }}</td>
+                        <td>{{ row['source'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No price history available for this card yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
