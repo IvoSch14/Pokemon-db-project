@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template, redirect
 from datetime import datetime
 import sys
 import os
@@ -17,7 +17,8 @@ def test():
 
 @app.route("/")
 def home():
-    return "Pokemon Card Price Tracker Home Page"
+    return render_template("index.html")
+#   return "Pokemon Card Price Tracker Home Page"
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -33,16 +34,34 @@ def register():
         """, (username, email, password_hash, datetime.now().isoformat()))
         db.commit()
 
-        return "User registered successfully."
+        # Send them to the home page after successfully registering
+        return redirect("/")
 
-    return """
-    <form method="post">
-        Username: <input name="username"><br>
-        Email: <input name="email"><br>
-        Password: <input name="password"><br>
-        <button type="submit">Register</button>
-    </form>
-    """
+    # If they are just loading the page (GET request), show the template
+    return render_template("register.html")
+#def register():
+#   if request.method == "POST":
+#       username = request.form["username"]
+#       email = request.form["email"]
+#       password_hash = request.form["password"]
+
+#       db = get_db()
+#       db.execute("""
+#           INSERT INTO users (username, email, password_hash, created_at)
+#           VALUES (?, ?, ?, ?)
+#       """, (username, email, password_hash, datetime.now().isoformat()))
+#       db.commit()
+
+#       return "User registered successfully."
+
+#   return """
+#   <form method="post">
+#       Username: <input name="username"><br>
+#       Email: <input name="email"><br>
+#       Password: <input name="password"><br>
+#       <button type="submit">Register</button>
+#   </form>
+#   """
 
 @app.route("/add_set", methods=["GET", "POST"])
 def add_set():
@@ -121,16 +140,27 @@ def search_cards():
     search_term = request.args.get("q", "")
 
     db = get_db()
-    cards = db.execute("""
-        SELECT * FROM cards
-        WHERE card_name LIKE ?
-    """, ('%' + search_term + '%',)).fetchall()
+    
+    if search_term:
+        cards = db.execute("""
+            SELECT * FROM cards 
+            WHERE card_name LIKE ?
+        """, ('%' + search_term + '%',)).fetchall()
+    else:
+        cards = [] # Show nothing if no search term
 
-    output = "<h1>Search Results</h1>"
-    for card in cards:
-        output += f"<p>{card['card_name']} - {card['rarity']}</p>"
+    return render_template("search.html", cards=cards, search_term=search_term)
+    
+#   cards = db.execute("""
+#       SELECT * FROM cards
+#       WHERE card_name LIKE ?
+#   """, ('%' + search_term + '%',)).fetchall()
 
-    return output
+#   output = "<h1>Search Results</h1>"
+#   for card in cards:
+#       output += f"<p>{card['card_name']} - {card['rarity']}</p>"
+
+#   return output
 
 @app.route("/update_email", methods=["GET", "POST"])
 def update_email():
@@ -183,17 +213,33 @@ def user_watchlist(user_id):
         WHERE users.user_id = ?
     """, (user_id,)).fetchall()
 
-    output = "<h1>User Watchlist</h1>"
-    for row in rows:
-        output += f"""
-        <p>
-            {row['username']} is tracking {row['card_name']}
-            ({row['rarity']}) -
-            Target: {row['alert_direction']} ${row['target_price']}
-        </p>
-        """
+    return render_template("watchlist.html", watchlist=rows)
+#def user_watchlist(user_id):
+#   db = get_db()
+#   rows = db.execute("""
+#       SELECT watchlist.watchlist_id,
+#              users.username,
+#              cards.card_name,
+#              cards.rarity,
+#              watchlist.target_price,
+#              watchlist.alert_direction
+#       FROM watchlist
+#       JOIN users ON watchlist.user_id = users.user_id
+#       JOIN cards ON watchlist.card_id = cards.card_id
+#       WHERE users.user_id = ?
+#   """, (user_id,)).fetchall()
 
-    return output
+#   output = "<h1>User Watchlist</h1>"
+#   for row in rows:
+#       output += f"""
+#       <p>
+#           {row['username']} is tracking {row['card_name']}
+#           ({row['rarity']}) -
+#            Target: {row['alert_direction']} ${row['target_price']}
+#       </p>
+#       """
+
+ #  return output
 
 @app.route("/average_price/<int:card_id>")
 def average_price(card_id):
@@ -209,6 +255,47 @@ def average_price(card_id):
 
     return f"Average price: ${row['avg_price']:.2f}"
 
+@app.route("/card/<int:card_id>")
+def card_details(card_id):
+    db = get_db()
+    
+    # Fetch the main card details
+    card = db.execute("""
+        SELECT cards.*, sets.set_name 
+        FROM cards 
+        LEFT JOIN sets ON cards.set_id = sets.set_id
+        WHERE card_id = ?
+    """, (card_id,)).fetchone()
 
+    # Fetch the price history for this card
+    price_history = db.execute("""
+        SELECT * FROM price_history 
+        WHERE card_id = ? 
+        ORDER BY recorded_at DESC
+    """, (card_id,)).fetchall()
+
+    if card is None:
+        return "Card not found", 404
+
+    return render_template("card_detail.html", card=card, history=price_history)
+
+@app.route("/add_to_watchlist", methods=["POST"])
+def add_to_watchlist():
+    card_id = request.form["card_id"]
+    user_id = request.form["user_id"]
+    target_price = request.form["target_price"]
+    alert_direction = request.form["alert_direction"]
+    date_added = datetime.now().isoformat()
+
+    db = get_db()
+    db.execute("""
+        INSERT INTO watchlist (user_id, card_id, target_price, alert_direction, date_added)
+        VALUES (?, ?, ?, ?, ?)
+    """, (user_id, card_id, target_price, alert_direction, date_added))
+    db.commit()
+
+    return redirect(f"/card/{card_id}")
+
+# This MUST be the very last thing in the file! (to avoid infinite loop)
 if __name__ == "__main__":
     app.run(debug=True)
